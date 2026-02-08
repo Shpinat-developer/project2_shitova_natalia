@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "project2-shitova-natalia"
+version = "0.1.0"
+description = ""
+authors = ["Shpinat-developer <dzeshnik@mail.ru>"]
+readme = "README.md"
+packages = [
+     { include = "src" },
+ ]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+prompt = "^0.4.1"
+
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.15.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+project = "src.primitive_db.main:main"
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+exclude = ["venv", ".venv", "dist", "__pycache__"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = []
