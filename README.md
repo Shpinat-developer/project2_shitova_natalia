@@ -49,3 +49,51 @@ $ python -m primitive_db
 
 https://asciinema.org/a/Ii73uqvoE4ESPt19
 
+##CRUD-операции
+
+Приложение поддерживает базовые операции с данными в таблицах (Create, Read, Update, Delete)
+
+## Создание записи
+
+```
+insert into users values ("Sergei", 28, true)
+```
+
+## Чтение записей
+
+Все записи:
+
+```
+select from users
+```
+
+Фильтр по условию:
+
+```
+select from users where age = 28
+```
+
+## Обновление записей
+
+```
+update users set age = 29 where name = "Sergei"
+```
+
+## Удаление записей
+
+```
+delete from users where ID = 1
+```
+
+## Информация о таблице
+
+```
+info users
+```
+## Демонстрация
+
+По ссылке приведен пример установки пакета, запуска БД, создание, проверку и удаление таблицы, вставка, удаление обновление строк в таблице
+
+https://asciinema.org/a/JARQL8qRyG33EOOK
+
+
