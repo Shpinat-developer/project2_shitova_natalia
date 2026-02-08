@@ -4,18 +4,12 @@ ALLOWED_TYPES = {"int", "str", "bool"}
 
 
 def create_table(metadata: dict, table_name: str, columns: list[str]) -> dict:
-    """
-    Создаёт описание таблицы в метаданных.
-
-    """
-    # Таблица уже существует
     if table_name in metadata:
         print(f'Ошибка: Таблица "{table_name}" уже существует.')
         return metadata
 
     schema: dict[str, str] = {}
 
-    # Разбор столбцов и проверка типов
     for col_def in columns:
         if ":" not in col_def:
             print(f"Некорректное значение: {col_def}. Попробуйте снова.")
@@ -31,9 +25,12 @@ def create_table(metadata: dict, table_name: str, columns: list[str]) -> dict:
 
         schema[col_name] = col_type
 
-    # Добавляем ID:int в начало схемы
-    full_schema = {"ID": "int"}
-    full_schema.update(schema)
+    # Если пользователь НЕ задал ID, добавляем сами
+    if "ID" not in schema and "id" not in schema:
+        full_schema = {"ID": "int"}
+        full_schema.update(schema)
+    else:
+        full_schema = schema
 
     metadata[table_name] = full_schema
 
