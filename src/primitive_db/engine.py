@@ -154,22 +154,19 @@ def run() -> None:
             raw_values = args[values_index:]
 
             # убираем запятые и крайние скобки
-
             cleaned = []
             for v in raw_values:
                 v = v.strip()
-                # убираем завершающие запятые
                 if v.endswith(","):
                     v = v[:-1]
-                # убираем начальные/конечные скобки
                 v = v.lstrip("(").rstrip(")")
                 cleaned.append(v)
 
             table_data = load_table_data(table_name)
-            try:
-                table_data = insert(metadata, table_name, table_data, cleaned)
-            except ValueError as e:
-                print(e)
+
+            table_data = insert(metadata, table_name, table_data, cleaned)
+            if table_data is None:
+                # декоратор handle_db_errors уже вывел сообщение
                 continue
 
             save_table_data(table_name, table_data)
@@ -196,7 +193,10 @@ def run() -> None:
                     print(e)
                     continue
 
-            rows = select(table_data, where_clause)
+            rows = select(table_name, table_data, where_clause)
+            if rows is None:
+                # декоратор обработал ошибку
+                continue
 
             if not rows:
                 print("Записей не найдено.")
@@ -206,7 +206,7 @@ def run() -> None:
                 for row in rows:
                     table.add_row([row[col] for col in table.field_names])
                 print(table)
-
+                
         elif command == "update":
             # update <имя_таблицы> set <...> where <...>
             if len(args) < 6 or args[2] != "set" or "where" not in args:
@@ -228,8 +228,11 @@ def run() -> None:
 
             table_data = load_table_data(table_name)
             table_data = update(table_data, set_clause, where_clause)
-            save_table_data(table_name, table_data)
+            if table_data is None:
+                # декоратор обработал ошибку
+                continue
 
+            save_table_data(table_name, table_data)
             print(f'Записи в таблице "{table_name}" успешно обновлены.')
 
         elif command == "delete":
@@ -250,9 +253,13 @@ def run() -> None:
 
             table_data = load_table_data(table_name)
             table_data = delete(table_data, where_clause)
-            save_table_data(table_name, table_data)
+            if table_data is None:
+                # декоратор обработал ошибку
+                continue
 
+            save_table_data(table_name, table_data)
             print(f'Записи в таблице "{table_name}" успешно удалены.')
+
 
         elif command == "info":
             # info <имя_таблицы>

@@ -1,8 +1,12 @@
 # src/primitive_db/core.py
 
+from typing import Any, Callable
+from .decorators import handle_db_errors, confirm_action, log_time
+
+
 ALLOWED_TYPES = {"int", "str", "bool"}
 
-
+@handle_db_errors
 def create_table(metadata: dict, table_name: str, columns: list[str]) -> dict:
     if table_name in metadata:
         print(f'Ошибка: Таблица "{table_name}" уже существует.')
@@ -39,6 +43,8 @@ def create_table(metadata: dict, table_name: str, columns: list[str]) -> dict:
 
     return metadata
 
+@handle_db_errors
+@confirm_action("удаление таблицы")
 
 def drop_table(metadata: dict, table_name: str) -> dict:
     """
@@ -72,8 +78,14 @@ def _cast_value(value, type_name: str):
         return bool(value)
     return value
 
-
-def insert(metadata: dict, table_name: str, table_data: list[dict], values: list) -> list[dict]:
+@handle_db_errors
+@log_time
+def insert(
+    metadata: dict, 
+    table_name: str, 
+    table_data: list[dict], 
+    values: list
+    ) -> list[dict]:
     """
     Добавляет новую запись в таблицу.
     """
@@ -87,7 +99,9 @@ def insert(metadata: dict, table_name: str, table_data: list[dict], values: list
     non_id_columns = column_names[1:]
 
     if len(values) != len(non_id_columns):
-        raise ValueError("Количество значений не совпадает с количеством столбцов (без ID).")
+        raise ValueError(
+        "Количество значений не совпадает с количеством столбцов (без ID)."
+        )
 
     # генерируем новый ID
     if table_data:
@@ -105,28 +119,36 @@ def insert(metadata: dict, table_name: str, table_data: list[dict], values: list
     table_data.append(row)
     return table_data
 
-
-def select(table_data: list[dict], where_clause: dict | None = None) -> list[dict]:
+@handle_db_errors
+@log_time
+def select(table_name: str, table_data: list[dict], where_clause: dict | None = None) -> list[dict]:
     """
-    Возвращает все записи или только те, что подходят под where
+    Возвращает все записи или только те, что подходят под where.
+    Результаты одинаковых запросов кэшируются.
     """
     if where_clause is None:
-        return table_data
+        key = (table_name, None)
+    else:
+        key = (table_name, tuple(sorted(where_clause.items())))
 
-    result: list[dict] = []
+    def compute() -> list[dict]:
+        if where_clause is None:
+            return table_data
 
-    for row in table_data:
-        ok = True
-        for key, value in where_clause.items():
-            if row.get(key) != value:
-                ok = False
-                break
-        if ok:
-            result.append(row)
+        result: list[dict] = []
+        for row in table_data:
+            ok = True
+            for k, v in where_clause.items():
+                if row.get(k) != v:
+                    ok = False
+                    break
+            if ok:
+                result.append(row)
+        return result
 
-    return result
+    return select_cache(key, compute)
 
-
+@handle_db_errors
 def update(table_data: list[dict], set_clause: dict, where_clause: dict) -> list[dict]:
     """
     Обновляет записи, подходящие под where полями из set
@@ -146,7 +168,8 @@ def update(table_data: list[dict], set_clause: dict, where_clause: dict) -> list
 
     return table_data
 
-
+@handle_db_errors
+@confirm_action("удаление записей")
 def delete(table_data: list[dict], where_clause: dict) -> list[dict]:
     """
     Удаляет записи, подходящие под where
@@ -165,3 +188,20 @@ def delete(table_data: list[dict], where_clause: dict) -> list[dict]:
 
     return new_data
 
+def create_cacher():
+    """
+    Создаёт замыкание cache_result с внутренним кэшем.
+    cache_result(key, value_func) -> результат, возможно из кэша.
+    """
+    cache: dict[Any, Any] = {}
+
+    def cache_result(key: Any, value_func: Callable[[], Any]) -> Any:
+        if key in cache:
+            return cache[key]
+        value = value_func()
+        cache[key] = value
+        return value
+
+    return cache_result 
+
+select_cache = create_cacher()
