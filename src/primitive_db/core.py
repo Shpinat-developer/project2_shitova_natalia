@@ -1,8 +1,8 @@
 # src/primitive_db/core.py
 
 from typing import Any, Callable
-from .decorators import handle_db_errors, confirm_action, log_time
 
+from .decorators import confirm_action, handle_db_errors, log_time
 
 ALLOWED_TYPES = {"int", "str", "bool"}
 
@@ -117,11 +117,16 @@ def insert(
         row[col_name] = _cast_value(raw_value, type_name)
 
     table_data.append(row)
+    clear_select_cache()
     return table_data
 
 @handle_db_errors
 @log_time
-def select(table_name: str, table_data: list[dict], where_clause: dict | None = None) -> list[dict]:
+def select(
+    table_name: str, 
+    table_data: list[dict], 
+    where_clause: dict | None = None
+    ) -> list[dict]:
     """
     Возвращает все записи или только те, что подходят под where.
     Результаты одинаковых запросов кэшируются.
@@ -165,7 +170,7 @@ def update(table_data: list[dict], set_clause: dict, where_clause: dict) -> list
 
         for key, value in set_clause.items():
             row[key] = value
-
+    clear_select_cache()
     return table_data
 
 @handle_db_errors
@@ -185,7 +190,7 @@ def delete(table_data: list[dict], where_clause: dict) -> list[dict]:
 
         if not match:
             new_data.append(row)
-
+    clear_select_cache()
     return new_data
 
 def create_cacher():
@@ -205,3 +210,11 @@ def create_cacher():
     return cache_result 
 
 select_cache = create_cacher()
+
+def clear_select_cache() -> None:
+    """
+    Очищает кэш результатов select.
+    """
+    global select_cache
+    select_cache = create_cacher()
+

@@ -1,6 +1,8 @@
 # src/primitive_db/utils.py
+
 import json
 from pathlib import Path
+
 
 def load_metadata(filepath: str) -> dict:
     """

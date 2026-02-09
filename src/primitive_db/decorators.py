@@ -1,6 +1,7 @@
 import time
 from functools import wraps
 
+
 def handle_db_errors(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
